@@ -1,0 +1,13 @@
+name = "PPSeq"
+uuid = "bde08ef1-7bcc-48ee-8e40-33ae55139814"
+authors = ["Alex H. Williams <ahwillia@stanford.edu>", "Anthony Degleris <degleris@stanford.edu>", "Scott W. Linderman <scott.linderman@stanford.edu>"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
