@@ -29,6 +29,14 @@ function plot_raster(
         events::Vector{EventSummaryInfo},
         spike_assignments::Vector{Int64},
         neuron_order::Vector{Int64};
+        color_cycle=["#E41A1C",
+                     "#377EB8",
+                     "#4DAF4A",
+                     "#984EA3",
+                     "#FF7F00",
+                     "#FFFF33",
+                     "#A65628",
+                     "#F781BF"],
         kwargs...
     )
 
@@ -45,12 +53,10 @@ function plot_raster(
 
         if spike_assignments[i] == -1
             push!(_c, "k")
-        elseif typemap[spike_assignments[i]] == 1
-            push!(_c, "b")
-        elseif typemap[spike_assignments[i]] == 2
-            push!(_c, "r")
-        elseif typemap[spike_assignments[i]] == 3
-            push!(_c, "g")
+        else
+            k = typemap[spike_assignments[i]]
+            col_ind = 1 + ((k - 1) % length(color_cycle))
+            push!(_c, color_cycle[col_ind])
         end
     end
 
