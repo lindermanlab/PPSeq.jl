@@ -44,7 +44,7 @@ function construct_model(config::Dict,
         num_neurons
     )
 
-    SeqModel(
+    model = SeqModel(
         # constants
         max_time,
         config[:max_sequence_length],
@@ -63,4 +63,10 @@ function construct_model(config::Dict,
         bkgd_amplitude,
         bkgd_proportions
     )
+
+    if (:num_threads in keys(config)) && config[:num_threads] > 0
+        return DistributedSeqModel(model, config[:num_threads])
+    else
+        return model
+    end
 end

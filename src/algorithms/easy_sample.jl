@@ -5,7 +5,7 @@ Trains SeqModel model given a config dict.
 Returns dict containing results.
 """
 function easy_sample!(
-        model::SeqModel,
+        model::Union{SeqModel,DistributedSeqModel},
         spikes::Vector{Spike},
         initial_assignments::Vector{Int64},
         config::Dict
@@ -35,11 +35,11 @@ function easy_sample!(
         verbose=true
     )
 
-    # Sanity check.
-    for k in model.sequence_events.indices
-        event = model.sequence_events[k]
-        @assert event.spike_count == sum(assignments .== k)
-    end
+    # # Sanity check.
+    # for k in model.sequence_events.indices
+    #     event = model.sequence_events[k]
+    #     @assert event.spike_count == sum(assignments .== k)
+    # end
 
     # Draw regular Gibbs samples.
     (
@@ -60,11 +60,11 @@ function easy_sample!(
         verbose=true
     )
 
-    # Sanity check.
-    for k in model.sequence_events.indices
-        event = model.sequence_events[k]
-        @assert event.spike_count == sum(assignments .== k)
-    end
+    # # Sanity check.
+    # for k in model.sequence_events.indices
+    #     event = model.sequence_events[k]
+    #     @assert event.spike_count == sum(assignments .== k)
+    # end
 
     return Dict(
         
