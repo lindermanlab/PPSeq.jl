@@ -2,7 +2,7 @@
 
 This repo implements the point process model of neural sequences (PP-Seq) described in:
 
-> **[Alex H. Williams](alexhwilliams.info) :coffee:, Anthony Degleris, Yixin Wang, [Scott W. Linderman](https://web.stanford.edu/~swl1/).**  Point process models for sequence detection in high-dimensional neural spike trains. *NeurIPS 2020*, Vancouver, CA.
+> **[Alex H. Williams](https://alexhwilliams.info) :coffee:, Anthony Degleris, Yixin Wang, [Scott W. Linderman](https://web.stanford.edu/~swl1/).**  Point process models for sequence detection in high-dimensional neural spike trains. *NeurIPS 2020*, Vancouver, CA.
 
 This model aims to identify sequential firing patterns in neural spike trains in an unsupervised manner.
 For example, consider the spike train below<sup>(1)</sup>:
