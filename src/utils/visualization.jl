@@ -1,0 +1,133 @@
+"""
+Plots un-labeled spike raster. If permute_neurons == true, then randomly
+permute the neuron labels before plotting.
+"""
+function plot_raster(spikes::Vector{Spike}; kwargs...)
+
+    # Create figure and allocate space.
+    fig = plt.figure()
+    _x, _y = zeros(length(spikes)), zeros(length(spikes))
+
+    # Plot raster and return.
+    for (i, s) in enumerate(spikes)
+        _x[i] = s.timestamp
+        _y[i] = s.neuron
+    end
+    (length(fig.axes) < 1) && fig.add_subplot(1, 1, 1)
+    fig.axes[1].scatter(_x, _y; s=4, kwargs...)
+    fig.axes[1].set_ylabel("neurons")
+    fig.axes[1].set_xlabel("time (s)")
+    return fig
+end
+
+
+"""
+Plots model-labled spike raster.
+"""
+function plot_raster(
+        spikes::Vector{Spike},
+        events::Vector{EventSummaryInfo},
+        spike_assignments::Vector{Int64},
+        neuron_order::Vector{Int64};
+        kwargs...
+    )
+
+    fig = plt.figure()
+    _x, _y = zeros(length(spikes)), zeros(length(spikes))
+    _c = String[]
+
+    typemap = Dict((e.assignment_id => e.seq_type) for e in events)
+    yidx = sortperm(neuron_order)
+
+    for (i, s) in enumerate(spikes)
+        _x[i] = s.timestamp
+        _y[i] = yidx[s.neuron]
+
+        if spike_assignments[i] == -1
+            push!(_c, "k")
+        elseif typemap[spike_assignments[i]] == 1
+            push!(_c, "b")
+        elseif typemap[spike_assignments[i]] == 2
+            push!(_c, "r")
+        elseif typemap[spike_assignments[i]] == 3
+            push!(_c, "g")
+        end
+    end
+
+    (length(fig.axes) < 1) && fig.add_subplot(1, 1, 1)
+    fig.axes[1].scatter(_x, _y; c=_c, s=4, kwargs...)
+    fig.axes[1].set_ylabel("neurons")
+    fig.axes[1].set_xlabel("time (s)")
+    return fig
+end
+
+
+function plot_log_likes(config::Dict, results::Dict)
+    
+    # x-axis coordinates for annealing and post-annealing epochs.
+    x1, x2 = _get_mcmc_x_coords(config, results)
+
+    # Log-likelihoods for annealing and post-annealing epochs.
+    y1 = results[:anneal_log_p_hist]
+    y2 = [results[:anneal_log_p_hist][end]; results[:log_p_hist]]
+
+    # Create figure
+    fig = plt.figure()
+    fig.add_subplot(1, 1, 1)
+
+    # Plot log-likelihood over MCMC samples.
+    fig.axes[1].plot(x1, y1; label="anneal")
+    fig.axes[1].plot(x2, y2; label="after anneal")
+
+    # Label axes, add legend.
+    fig.axes[1].set_ylabel("log-likelihood")
+    fig.axes[1].set_xlabel("MCMC samples")
+    fig.axes[1].legend()
+
+    return fig
+
+end
+
+
+function plot_num_seq_events(config::Dict, results::Dict)
+
+    # x-axis coordinates for annealing and post-annealing epochs.
+    x1, x2 = _get_mcmc_x_coords(config, results)
+
+    # Number of sequence events (K) during annealing and post-annealing epochs.
+    y1 = [length(ev) for ev in results[:anneal_latent_event_hist]]
+    y2 = [y1[end]; [length(ev) for ev in results[:latent_event_hist]]]
+
+    # Create figure
+    fig = plt.figure()
+    fig.add_subplot(1, 1, 1)
+
+    # Plot number of sequence occurences over MCMC samples.
+    fig.axes[1].plot(x1, y1; label="anneal")
+    fig.axes[1].plot(x2, y2; label="after anneal")
+
+    # Label axes, add legend.
+    fig.axes[1].set_ylabel("Number of Sequence Events")
+    fig.axes[1].set_xlabel("MCMC samples")
+    fig.axes[1].legend()
+
+    return fig
+
+end
+
+
+function _get_mcmc_x_coords(config::Dict, results::Dict)
+
+    # x-axis coordinates for annealing epoch
+    s1 = config[:save_every_during_anneal]
+    e1 = (length(results[:anneal_log_p_hist]) * s1)
+    x1 = collect(s1:s1:e1)
+
+    # x-axis coordinates for post-anneal epoch.
+    s2 = config[:save_every_after_anneal]
+    e2 = e1 + (length(results[:log_p_hist]) * s2)
+    x2 = collect(e1:s2:e2)
+
+    return x1, x2
+
+end
