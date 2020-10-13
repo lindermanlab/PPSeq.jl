@@ -2,7 +2,7 @@
 
 This repo implements the point process model of neural sequences (PP-Seq) described in:
 
-> **[Alex H. Williams](https://alexhwilliams.info) :coffee:, Anthony Degleris, [Yixin Wang](http://people.eecs.berkeley.edu/~ywang/), [Scott W. Linderman](https://web.stanford.edu/~swl1/) :loudspeaker:.**
+> **[Alex H. Williams](https://alexhwilliams.info) :coffee:, [Anthony Degleris](https://degleris1.github.io/), [Yixin Wang](http://people.eecs.berkeley.edu/~ywang/), [Scott W. Linderman](https://web.stanford.edu/~swl1/) :loudspeaker:.**
 > <br>[Point process models for sequence detection in high-dimensional neural spike trains](https://arxiv.org/abs/2010.04875).
 > <br> *Neural Information Processing Systems 2020*, Vancouver, CA.
 
