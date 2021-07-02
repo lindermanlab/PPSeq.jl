@@ -517,25 +517,24 @@ function clean_masks(
 )
     new_masks = Mask[]
     for n = 1:num_neurons
-        # Find the masks corresponding to thie neuron
+        # Find this neuron's masks
         this_neur_masks = Mask[]
-        for mask = 1:length(masks)
-            if masks[mask][1] == n
-                push!(this_neur_masks, masks[mask])
+        for mask in masks
+            if mask[1] == n
+                push!(this_neur_masks, mask)
             end
         end
 
-        # Find the start of mask times for this neuron
+        # Find the start of this neuron's masks
         start_times = []
         for (n,(t0,t1)) in this_neur_masks
             push!(start_times, t0)
         end
 
-        # Sort them
-        start_times_indices = sortperm(start_times)
-        sorted_mask = this_neur_masks[start_times_indices]
+        # Sort these masks by start time.
+        sorted_mask = this_neur_masks[sortperm(start_times)]
 
-        # Find the offending masks
+        # Find the offending masks, those whose start time less than some small threshold after another mask's end time
         indices_to_delete = []
         for index = 1:(length(sorted_mask)-1)
             if (sorted_mask[index+1][2][1] - sorted_mask[index][2][2] < 0.0001)
@@ -543,7 +542,7 @@ function clean_masks(
             end
         end
 
-        # Go through and remove them
+        # Remove them sequentially, in each case merging them into the mask occurring first.         
         counter = 0
         for index = 1:length(sorted_mask)
             if index in indices_to_delete
