@@ -76,10 +76,10 @@ function plot_log_likes(config::Dict, results::Dict)
     # Log-likelihoods for annealing and post-annealing epochs.
     if haskey(config, :mask_lengths)
         y1 = results[:anneal_test_log_p_hist]
-        y2 = [results[:anneal_test_log_p_hist][end]; results[:train_log_p_hist]]
+        y2 = [results[:anneal_test_log_p_hist][end]; results[:test_log_p_hist]]
         
         y3 = results[:anneal_train_log_p_hist]
-        y4 = [results[:anneal_train_log_p_hist][end]; results[:test_log_p_hist]]
+        y4 = [results[:anneal_train_log_p_hist][end]; results[:train_log_p_hist]]
     else
         y1 = results[:anneal_log_p_hist]
         y2 = [results[:anneal_log_p_hist][end]; results[:log_p_hist]]

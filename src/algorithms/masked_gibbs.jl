@@ -511,7 +511,7 @@ function assert_spikes_not_in_mask(
     end
 end
 
-function clean_masks(
+function merge_contiguous_masks(
     masks::Vector{Mask},
     num_neurons::Integer
 )
@@ -542,14 +542,22 @@ function clean_masks(
             end
         end
 
-        # Remove them sequentially, in each case merging them into the mask occurring first.         
-        counter = 0
+        # Remove them sequentially, in each case merging them into the mask occurring last. 
+        num_deleted = 0
         for index = 1:length(sorted_mask)
             if index in indices_to_delete
-                counter = counter + 1
+            # Delete mask (i.e. don't push it onto new_masks array).
+                num_deleted = num_deleted + 1
+
             else
-                push!(new_masks, (sorted_mask[index][1],(sorted_mask[index-counter][2][1],sorted_mask[index][2][2])))
-                counter = 0
+                # Keep mask, modify start time to reflect any deleted masks.
+                neuron_id = sorted_mask[index][1]
+                start = sorted_mask[index - num_deleted][2][1]
+                stop = sorted_mask[index][2][2]
+                push!(new_masks, (neuron_id, (start, stop)))
+
+                # Reset the number of deleted masks.
+                num_deleted = 0
             end
         end
     end
