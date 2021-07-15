@@ -31,7 +31,7 @@ function masked_gibbs!(
 
     # Create inverted masks to compute train log likelihood.
     inv_masks = compute_complementary_masks(
-        masks, num_neurons(model), model.max_time)
+        masks, num_neurons(model), model.max_time+0.000000001)
 
     # Sanity check.
     assert_spikes_in_mask(masked_spikes, masks)
@@ -509,4 +509,58 @@ function assert_spikes_not_in_mask(
             end
         end
     end
+end
+
+function merge_contiguous_masks(
+    masks::Vector{Mask},
+    num_neurons::Integer
+)
+    new_masks = Mask[]
+    for n = 1:num_neurons
+        # Find this neuron's masks
+        this_neur_masks = Mask[]
+        for mask in masks
+            if mask[1] == n
+                push!(this_neur_masks, mask)
+            end
+        end
+
+        # Find the start times of this neuron's masks
+        start_times = []
+        for (n,(t0,t1)) in this_neur_masks
+            push!(start_times, t0)
+        end
+
+        # Sort these masks by start time.
+        sorted_mask = this_neur_masks[sortperm(start_times)]
+
+        # Find the offending masks, those whose start time is less than some small threshold after another mask's end time
+        indices_to_delete = []
+        for index = 1:(length(sorted_mask)-1)
+            if (sorted_mask[index+1][2][1] - sorted_mask[index][2][2] < 0.0001)
+                push!(indices_to_delete, index)
+            end
+        end
+
+        # Remove them sequentially, in each case merging them into the mask occurring last. 
+        num_deleted = 0
+        for index = 1:length(sorted_mask)
+            if index in indices_to_delete
+            # Delete mask (i.e. don't push it onto new_masks array).
+                num_deleted = num_deleted + 1
+
+            else
+                # Keep mask, modify start time to reflect any deleted masks.
+                neuron_id = sorted_mask[index][1]
+                start = sorted_mask[index - num_deleted][2][1]
+                stop = sorted_mask[index][2][2]
+                push!(new_masks, (neuron_id, (start, stop)))
+
+                # Reset the number of deleted masks.
+                num_deleted = 0
+            end
+        end
+    end
+
+    return new_masks
 end

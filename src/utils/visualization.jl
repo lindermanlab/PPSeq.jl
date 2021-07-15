@@ -74,24 +74,39 @@ function plot_log_likes(config::Dict, results::Dict)
     x1, x2 = _get_mcmc_x_coords(config, results)
 
     # Log-likelihoods for annealing and post-annealing epochs.
-    y1 = results[:anneal_log_p_hist]
-    y2 = [results[:anneal_log_p_hist][end]; results[:log_p_hist]]
+    if haskey(config, :mask_lengths)
+        y1 = results[:anneal_test_log_p_hist]
+        y2 = [results[:anneal_test_log_p_hist][end]; results[:test_log_p_hist]]
+        
+        y3 = results[:anneal_train_log_p_hist]
+        y4 = [results[:anneal_train_log_p_hist][end]; results[:train_log_p_hist]]
+    else
+        y1 = results[:anneal_log_p_hist]
+        y2 = [results[:anneal_log_p_hist][end]; results[:log_p_hist]]
+    end
 
     # Create figure
     fig = plt.figure()
     fig.add_subplot(1, 1, 1)
 
     # Plot log-likelihood over MCMC samples.
-    fig.axes[1].plot(x1, y1; label="anneal")
-    fig.axes[1].plot(x2, y2; label="after anneal")
-
+    if haskey(config, :mask_lengths)
+        fig.axes[1].plot(x1,y1; label="test anneal")
+        fig.axes[1].plot(x2,y2; label="test after anneal")
+        
+        fig.axes[1].plot(x1,y3; label="train anneal")
+        fig.axes[1].plot(x2,y4; label="trian after anneal")
+    else
+        fig.axes[1].plot(x1, y1; label="anneal")
+        fig.axes[1].plot(x2, y2; label="after anneal")
+    end
+    
     # Label axes, add legend.
     fig.axes[1].set_ylabel("log-likelihood")
     fig.axes[1].set_xlabel("MCMC samples")
     fig.axes[1].legend()
 
     return fig
-
 end
 
 
@@ -124,16 +139,27 @@ end
 
 function _get_mcmc_x_coords(config::Dict, results::Dict)
 
-    # x-axis coordinates for annealing epoch
-    s1 = config[:save_every_during_anneal]
-    e1 = (length(results[:anneal_log_p_hist]) * s1)
-    x1 = collect(s1:s1:e1)
+    if haskey(config, :mask_lengths)
+        # x-axis coordinates for annealing epoch
+        s1 = config[:save_every_during_anneal]
+        e1 = (length(results[:anneal_train_log_p_hist])*s1)
+        x1 = collect(s1:s1:e1)
 
-    # x-axis coordinates for post-anneal epoch.
-    s2 = config[:save_every_after_anneal]
-    e2 = e1 + (length(results[:log_p_hist]) * s2)
-    x2 = collect(e1:s2:e2)
+        # x-axis coordinates for post-anneal epoch.
+        s2 = config[:save_every_after_anneal]
+        e2 = e1 + (length(results[:train_log_p_hist]) * s2)
+        x2 = collect(e1:s2:e2)
+    else
+        # x-axis coordinates for annealing epoch
+        s1 = config[:save_every_during_anneal]
+        e1 = (length(results[:anneal_log_p_hist]) * s1)
+        x1 = collect(s1:s1:e1)
+
+        # x-axis coordinates for post-anneal epoch.
+        s2 = config[:save_every_after_anneal]
+        e2 = e1 + (length(results[:log_p_hist]) * s2)
+        x2 = collect(e1:s2:e2)
+    end
 
     return x1, x2
-
 end
