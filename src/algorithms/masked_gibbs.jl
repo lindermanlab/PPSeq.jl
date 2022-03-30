@@ -15,7 +15,8 @@ function masked_gibbs!(
         extra_split_merge_moves::Int64,
         split_merge_window::Float64,
         save_every::Int64;
-        verbose::Bool=true
+        verbose::Bool=true,
+        callback=(args...) -> nothing,
     )
 
     sampled_spikes = Spike[]
@@ -56,6 +57,8 @@ function masked_gibbs!(
     unmasked_assignments = initial_assignments
 
     for i = 1:num_spike_resamples
+        callback()
+        flush(stdout)
 
         # Sample new spikes in each masked region.
         sample_masked_spikes!(
@@ -154,7 +157,8 @@ function annealed_masked_gibbs!(
         extra_split_merge_moves::Int64,
         split_merge_window::Float64,
         save_every::Int64;
-        verbose::Bool=true
+        verbose::Bool=true,
+        callback=(args...) -> nothing,
     )
 
     masked_spikes, unmasked_spikes = split_spikes_by_mask(spikes, masks)
@@ -229,7 +233,8 @@ function annealed_masked_gibbs!(
             extra_split_merge_moves,
             split_merge_window,
             save_every;
-            verbose=verbose
+            verbose=verbose,
+            callback=callback,
         )
 
         # Save samples.
@@ -263,7 +268,8 @@ function masked_gibbs!(
         extra_split_merge_moves::Int64,
         split_merge_window::Float64,
         save_every::Int64;
-        verbose::Bool=true
+        verbose::Bool=true,
+        callback=(args...) -> nothing,
     )
 
     masked_spikes, unmasked_spikes = split_spikes_by_mask(spikes, masks)
@@ -279,7 +285,8 @@ function masked_gibbs!(
         extra_split_merge_moves,
         split_merge_window,
         save_every;
-        verbose=verbose
+        verbose=verbose,
+        callback=callback
     )
 end
 
@@ -394,7 +401,7 @@ function compute_complementary_masks(
                 )
                 break
             end
-            @assert (i + 1) != length(inverted_masks)
+            @assert i != length(inverted_masks[n])
         end
     end
 
