@@ -17,7 +17,7 @@ function gibbs_sample!(
     end
 
     num_partitions = model.num_partitions
-    max_time = model.primary_model.max_time
+    max_time = model.max_time
 
     # Partition spikes.
     split_points = Tuple(p * max_time / num_partitions for p in 0:num_partitions)
@@ -133,6 +133,7 @@ function gibbs_sample!(
             push!(globals_hist, deepcopy(model.primary_model.globals))
 
             verbose && print(s, "-")
+            flush(stdout)
         end
     end
     verbose && println("Done")

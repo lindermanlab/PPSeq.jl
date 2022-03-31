@@ -91,6 +91,7 @@ function gibbs_sample!(
 
             # Display progress.
             verbose && print(s, "-")
+            flush(stdout)
         end
     end
 

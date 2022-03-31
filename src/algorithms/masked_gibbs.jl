@@ -207,10 +207,9 @@ function annealed_masked_gibbs!(
             model,
             log(α) + log(λ) + log(model.max_time) + α * (log(β) - log(1 + β))
         )
-        model.bkgd_log_prob = (
-            log(model.globals.bkgd_amplitude)
-            + log(model.max_time)
-            + log(1 + β)
+        set_bkgd_log_prob!(
+            model,
+            log(model.globals.bkgd_amplitude) + log(model.max_time) + log(1 + β)
         )
 
         # Draw gibbs samples.
