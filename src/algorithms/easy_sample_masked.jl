@@ -9,7 +9,8 @@ function easy_sample_masked!(
         spikes::Vector{Spike},
         masks::Vector{Mask},
         initial_assignments::Vector{Int64},
-        config::Dict
+        config::Dict;
+        callback=(args...) -> nothing,
     )
 
     # Save copy of initial assignments.
@@ -34,9 +35,10 @@ function easy_sample_masked!(
         config[:num_spike_resamples_per_anneal],
         config[:samples_per_resample],
         config[:split_merge_moves_during_anneal],
-        config[:split_merge_window],
-        config[:save_every_during_anneal];
-        verbose=true
+        config[:save_every_during_anneal],
+        config;
+        verbose=true,
+        callback=callback,
     )
 
     # Draw regular masked Gibbs samples.
@@ -56,9 +58,10 @@ function easy_sample_masked!(
         config[:num_spike_resamples],
         config[:samples_per_resample],
         config[:split_merge_moves_after_anneal],
-        config[:split_merge_window],
-        config[:save_every_after_anneal];
-        verbose=true
+        config[:save_every_after_anneal],
+        config;
+        verbose=true,
+        callback=callback,
     )
 
     # return the results

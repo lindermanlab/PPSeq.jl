@@ -8,10 +8,12 @@ function gibbs_sample!(
         initial_assignments::Vector{Int64},
         num_samples::Int64,
         extra_split_merge_moves::Int64,
-        split_merge_window::Float64,
-        save_every::Int64;
+        save_every::Int64,
+        config::Dict;
         verbose::Bool=false
     )
+
+    split_merge_window = config[:split_merge_window]
 
     # Initialize spike assignments.
     assignments = initial_assignments
@@ -60,10 +62,10 @@ function gibbs_sample!(
         )
 
         # Update latent events.
-        gibbs_update_latents!(model)
+        gibbs_update_latents!(model, config)
 
         # Update globals
-        gibbs_update_globals!(model, spikes, assignments)
+        gibbs_update_globals!(model, spikes, assignments, config)
 
         # Store results
         if (s % save_every) == 0
@@ -91,11 +93,13 @@ function gibbs_sample!(
 
             # Display progress.
             verbose && print(s, "-")
+            flush(stdout)
         end
     end
 
     # Finish progress bar.
     verbose && (n_saved_samples > 0) && println("Done")
+    flush(stdout)
 
     return (
         assignments,
@@ -204,7 +208,8 @@ end
 function gibbs_update_globals!(
         model::SeqModel,
         spikes::Vector{Spike},
-        assignments::AbstractVector{Int64}
+        assignments::AbstractVector{Int64},
+        config::Dict
     )
 
     K = num_sequence_events(model)
@@ -312,7 +317,10 @@ function gibbs_update_globals!(
 
     end
 
-    for r = 1:R
+    # config dict has an integer parameter X = config[:sacred sequences].
+    # The first X sequences should NOT have their parameters changed (i.e. neuron width, offset, and log proportions)
+
+    for r = 1+config[:sacred_sequences]:R
 
         rand!(
             posterior(
@@ -339,13 +347,9 @@ function gibbs_update_globals!(
 
         end
 
+        # Now take logarithm of the log_proportions
+        globals.neuron_response_log_proportions[:,r] = log.(globals.neuron_response_log_proportions[:,r])
     end
-
-    map!(
-        log,
-        globals.neuron_response_log_proportions,
-        globals.neuron_response_log_proportions
-    )
 
     # === RECOMPUTE NEW CLUSTER PROBABILITIES === #
 
@@ -382,7 +386,8 @@ end
 Resamples sequence type, timestamp, and amplitude. For all
 latent events.
 """
-function gibbs_update_latents!(model::SeqModel)
+function gibbs_update_latents!(model::SeqModel,
+                               config::Dict)
 
     # Grab length-R vector (already pre-allocated).
     log_probs = model._RW_buffer

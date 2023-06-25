@@ -7,34 +7,22 @@ function gibbs_sample!(
     initial_assignments::Vector{Int64},
     num_samples::Int64,
     extra_split_merge_moves::Int64,
-    split_merge_window::Float64,
-    save_every::Int64;
+    save_every::Int64,
+    config::Dict;
     verbose=false
 )
+
+    split_merge_window = config[:split_merge_window]
 
     if extra_split_merge_moves > 0
         @warn "Split merge not implemented for distributed model."
     end
 
     num_partitions = model.num_partitions
-    max_time = model.primary_model.max_time
+    max_time = model.max_time
 
     # Partition spikes.
-    split_points = Tuple(p * max_time / num_partitions for p in 0:num_partitions)
-    spk_partition = Tuple(Spike[] for m in model.submodels)
-    assgn_partition = [Int64[] for m in model.submodels]  # TODO -- Tuple?
-    partition_ids = [Int64[] for m in model.submodels]    # TODO -- Tuple?
-
-    for s = 1:length(spikes)
-        for p = 1:model.num_partitions
-            if split_points[p] <= spikes[s].timestamp <= split_points[p + 1]
-                push!(spk_partition[p], spikes[s])
-                push!(assgn_partition[p], initial_assignments[s])
-                push!(partition_ids[p], s)
-                break
-            end
-        end
-    end
+    spk_partition, assgn_partition, partition_ids = partition_spikes(model, spikes, initial_assignments)
 
     # Dense rank assignments within each partition.
     for p = 1:model.num_partitions
@@ -44,11 +32,7 @@ function gibbs_sample!(
 
     # Pass assignments to submodels
     for p in 1:model.num_partitions
-        recompute!(
-            model.submodels[p],
-            spk_partition[p],
-            assgn_partition[p],
-        )
+        recompute!(model.submodels[p], spk_partition[p], assgn_partition[p])
     end
 
     # Save spike assignments over samples.
@@ -105,10 +89,10 @@ function gibbs_sample!(
         collect_assignments!(model, assignments, assgn_partition, partition_ids)
 
         # Update latent events.
-        gibbs_update_latents!(model.primary_model)
+        gibbs_update_latents!(model.primary_model, config)
 
         # Update globals
-        gibbs_update_globals!(model.primary_model, spikes, assignments)
+        gibbs_update_globals!(model.primary_model, spikes, assignments, config)
 
         # No need to pass updates to submodels, since the globals
         # and events point to the same objects.
@@ -133,9 +117,11 @@ function gibbs_sample!(
             push!(globals_hist, deepcopy(model.primary_model.globals))
 
             verbose && print(s, "-")
+            flush(stdout)
         end
     end
     verbose && println("Done")
+    flush(stdout)
 
     return (
         assignments,
@@ -144,6 +130,35 @@ function gibbs_sample!(
         latent_event_hist,
         globals_hist
     )
+end
+
+"""
+    partition_spikes(model::DistributedSeqModel, spikes, assignments)
+
+Partition spikes among the various submodels.
+"""
+function partition_spikes(model::DistributedSeqModel, spikes, assignments)
+    max_time = model.max_time
+    num_partitions = model.num_partitions
+
+    # Partition spikes.
+    split_points = Tuple(p * max_time / num_partitions for p in 0:num_partitions)
+    spk_partition = Tuple(Spike[] for m in model.submodels)
+    assgn_partition = [Int64[] for m in model.submodels]  # TODO -- Tuple?
+    partition_ids = [Int64[] for m in model.submodels]    # TODO -- Tuple?
+
+    for s = 1:length(spikes)
+        for p = 1:model.num_partitions
+            if split_points[p] <= spikes[s].timestamp <= split_points[p + 1]
+                push!(spk_partition[p], spikes[s])
+                push!(assgn_partition[p], assignments[s])
+                push!(partition_ids[p], s)
+                break
+            end
+        end
+    end
+
+    return spk_partition, assgn_partition, partition_ids
 end
 
 

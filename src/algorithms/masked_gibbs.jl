@@ -13,9 +13,10 @@ function masked_gibbs!(
         num_spike_resamples::Int64,
         samples_per_resample::Int64,
         extra_split_merge_moves::Int64,
-        split_merge_window::Float64,
-        save_every::Int64;
-        verbose::Bool=true
+        save_every::Int64,
+        config::Dict;
+        verbose::Bool=true,
+        callback=(args...) -> nothing,
     )
 
     sampled_spikes = Spike[]
@@ -56,6 +57,8 @@ function masked_gibbs!(
     unmasked_assignments = initial_assignments
 
     for i = 1:num_spike_resamples
+        callback()
+        flush(stdout)
 
         # Sample new spikes in each masked region.
         sample_masked_spikes!(
@@ -84,8 +87,8 @@ function masked_gibbs!(
             vcat(unmasked_assignments, sampled_assignments),
             samples_per_resample,
             extra_split_merge_moves,
-            split_merge_window,
-            save_every;
+            save_every,
+            config;
             verbose=false
         )
 
@@ -115,10 +118,12 @@ function masked_gibbs!(
         append!(globals_hist, _globals)
 
         verbose && print(i * samples_per_resample, "-")
+        flush(stdout)
 
     end
 
     verbose && println("Done")
+    flush(stdout)
 
     # Before returning, remove assignments assigned to imputed spikes.
     recompute!(model, unmasked_spikes, unmasked_assignments)
@@ -152,9 +157,10 @@ function annealed_masked_gibbs!(
         num_spike_resamples_per_anneal::Int64,
         samples_per_resample::Int64,
         extra_split_merge_moves::Int64,
-        split_merge_window::Float64,
-        save_every::Int64;
-        verbose::Bool=true
+        save_every::Int64,
+        config::Dict;
+        verbose::Bool=true,
+        callback=(args...) -> nothing,
     )
 
     masked_spikes, unmasked_spikes = split_spikes_by_mask(spikes, masks)
@@ -175,6 +181,7 @@ function annealed_masked_gibbs!(
         
         # Print progress.
         verbose && println("TEMP:  ", temp)
+        flush(stdout)
 
         # Anneal prior on sequence amplitude.
         prior = priors(model)
@@ -203,10 +210,9 @@ function annealed_masked_gibbs!(
             model,
             log(α) + log(λ) + log(model.max_time) + α * (log(β) - log(1 + β))
         )
-        model.bkgd_log_prob = (
-            log(model.globals.bkgd_amplitude)
-            + log(model.max_time)
-            + log(1 + β)
+        set_bkgd_log_prob!(
+            model,
+            log(model.globals.bkgd_amplitude) + log(model.max_time) + log(1 + β)
         )
 
         # Draw gibbs samples.
@@ -227,9 +233,10 @@ function annealed_masked_gibbs!(
             num_spike_resamples_per_anneal,
             samples_per_resample,
             extra_split_merge_moves,
-            split_merge_window,
-            save_every;
-            verbose=verbose
+            save_every,
+            config;
+            verbose=verbose,
+            callback=callback,
         )
 
         # Save samples.
@@ -261,9 +268,10 @@ function masked_gibbs!(
         num_spike_resamples::Int64,
         samples_per_resample::Int64,
         extra_split_merge_moves::Int64,
-        split_merge_window::Float64,
-        save_every::Int64;
-        verbose::Bool=true
+        save_every::Int64,
+        config::Dict;
+        verbose::Bool=true,
+        callback=(args...) -> nothing,
     )
 
     masked_spikes, unmasked_spikes = split_spikes_by_mask(spikes, masks)
@@ -277,9 +285,10 @@ function masked_gibbs!(
         num_spike_resamples,
         samples_per_resample,
         extra_split_merge_moves,
-        split_merge_window,
-        save_every;
-        verbose=verbose
+        save_every,
+        config;
+        verbose=verbose,
+        callback=callback
     )
 end
 
@@ -394,7 +403,7 @@ function compute_complementary_masks(
                 )
                 break
             end
-            @assert (i + 1) != length(inverted_masks)
+            @assert i != length(inverted_masks[n])
         end
     end
 

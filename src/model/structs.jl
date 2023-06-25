@@ -340,3 +340,11 @@ mutable struct DistributedSeqModel
     num_partitions::Int64
     submodels::Vector{SeqModel}    
 end
+
+function Base.getproperty(obj::DistributedSeqModel, sym::Symbol)
+    if hasfield(DistributedSeqModel, sym)
+        return getfield(obj, sym)
+    else
+        return getproperty(obj.primary_model, sym)
+    end
+end

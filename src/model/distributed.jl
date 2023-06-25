@@ -8,6 +8,7 @@ function DistributedSeqModel(
     num_warp_values::Int64,
     max_warp::Float64,
     warp_variance::Float64,
+    warp_type::Int64,
 
     # priors
     seq_event_rate::Float64,
@@ -25,6 +26,7 @@ function DistributedSeqModel(
         num_warp_values,
         max_warp,
         warp_variance,
+        warp_type,
         seq_event_rate,
         seq_type_proportions,
         seq_event_amplitude,

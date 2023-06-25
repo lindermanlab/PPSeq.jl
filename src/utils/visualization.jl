@@ -74,7 +74,7 @@ function plot_log_likes(config::Dict, results::Dict)
     x1, x2 = _get_mcmc_x_coords(config, results)
 
     # Log-likelihoods for annealing and post-annealing epochs.
-    if haskey(config, :mask_lengths)
+    if config[:are_we_masking] == 1
         y1 = results[:anneal_test_log_p_hist]
         y2 = [results[:anneal_test_log_p_hist][end]; results[:test_log_p_hist]]
         
@@ -90,7 +90,7 @@ function plot_log_likes(config::Dict, results::Dict)
     fig.add_subplot(1, 1, 1)
 
     # Plot log-likelihood over MCMC samples.
-    if haskey(config, :mask_lengths)
+    if config[:are_we_masking] == 1
         fig.axes[1].plot(x1,y1; label="test anneal")
         fig.axes[1].plot(x2,y2; label="test after anneal")
         
@@ -139,7 +139,7 @@ end
 
 function _get_mcmc_x_coords(config::Dict, results::Dict)
 
-    if haskey(config, :mask_lengths)
+    if config[:are_we_masking] == 1
         # x-axis coordinates for annealing epoch
         s1 = config[:save_every_during_anneal]
         e1 = (length(results[:anneal_train_log_p_hist])*s1)

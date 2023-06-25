@@ -9,22 +9,51 @@ num_sequence_events(model::SeqModel) = length(model.sequence_events)
 """Helper function to initialize warp probabilities."""
 function default_warps(num_warp_values::Int64,
                        τ_max::Float64,
-                       warp_variance::Float64)
+                       warp_variance::Float64,
+                       warp_type::Int64)
     @assert num_warp_values >= 1
     @assert τ_max >= 1 "max warp value must be >= 1 by convention."
     @assert warp_variance >= 0
+    allowed_warp_types = (0,1,2,3)
+    @assert any(x->x==warp_type, allowed_warp_types) "only warp values 0 - 3 implemented"
+    if warp_type > 1
+        @assert mod(num_warp_values, 2) == 0 "When using negative warps number of warp values must be even at the moment!"
+    end
 
     # Initialize the warp parameters.
     if num_warp_values == 1
         warp_values = ones(1)
         warp_log_proportions = zeros(1)
-    else
-        # Log-spaced values between 1/τ_max and τ_max
+
+    elseif warp_type == 0 # Log-spaced values between 1/τ_max and τ_max
         warp_values = τ_max .^ range(-1, 1, length=num_warp_values)
         # Set a mean-zero Gaussian prior on the log warp values
         warp_log_proportions = -0.5 / warp_variance * range(-1, 1, length=num_warp_values) .^ 2
         warp_log_proportions .-= logsumexp(warp_log_proportions)
+
+    elseif warp_type == 1 # Log-spaced values between 1/τ_max and 1
+        warp_values = τ_max .^ range(-1, 0, length=num_warp_values)
+        # Set a mean-zero Gaussian prior on the log warp values
+        warp_log_proportions = -0.5 / warp_variance * range(-1, 0, length=num_warp_values) .^ 2
+        warp_log_proportions .-= logsumexp(warp_log_proportions)
+
+    elseif warp_type == 2 # Log-spaced values between 1/τ_max and τ_max, both positive and negative
+        warp_values = τ_max .^ range(-1, 1, length=num_warp_values÷2)
+        # Set a mean-zero Gaussian prior on the log warp values
+        warp_log_proportions = -0.5 / warp_variance * range(-1, 1, length=num_warp_values÷2) .^ 2
+        warp_values = vcat(warp_values, (-1).*warp_values)
+        warp_log_proportions = vcat(warp_log_proportions, warp_log_proportions)
+        warp_log_proportions .-= logsumexp(warp_log_proportions)
+
+    elseif warp_type == 3 # Log-spaced values between 1/τ_max and 1, both positive and negative
+        warp_values = τ_max .^ range(-1, 0, length=num_warp_values÷2)
+        # Set a mean-zero Gaussian prior on the log warp values
+        warp_log_proportions = -0.5 / warp_variance * range(-1, 0, length=num_warp_values÷2) .^ 2
+        warp_values = vcat(warp_values, (-1).*warp_values)
+        warp_log_proportions = vcat(warp_log_proportions, warp_log_proportions)
+        warp_log_proportions .-= logsumexp(warp_log_proportions)
     end
+
     warp_values, warp_log_proportions
 end
 
@@ -39,6 +68,7 @@ function SeqModel(
         num_warp_values::Int64,
         max_warp::Float64,
         warp_variance::Float64,
+        warp_type::Int64,
 
         # priors
         seq_event_rate::Float64,
@@ -57,7 +87,7 @@ function SeqModel(
 
     # Specify discrete distribution over warp values.
     warp_values, warp_log_proportions =
-        default_warps(num_warp_values, max_warp, warp_variance)
+        default_warps(num_warp_values, max_warp, warp_variance, warp_type)
     @show warp_values, warp_log_proportions
 
     # Create prior distributions.

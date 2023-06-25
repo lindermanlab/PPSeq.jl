@@ -5,14 +5,12 @@ function annealed_gibbs!(
         model::Union{SeqModel,DistributedSeqModel},
         spikes::Vector{Spike},
         initial_assignments::Vector{Int64},
-        num_anneals::Int64,
-        samples_per_anneal::Int64,
-        max_temperature::Float64,
-        extra_split_merge_moves::Int64,
-        split_merge_window::Float64,
-        save_every::Int64;
+        config::Dict;
         verbose::Bool=false
     )
+
+    num_anneals = config[:num_anneals]
+    max_temperature = config[:max_temperature]
 
     # Initialize storage.
     assignment_hist = zeros(Int64, length(spikes), 0)
@@ -43,6 +41,7 @@ function annealed_gibbs!(
         
         # Print progress.
         verbose && println("TEMP:  ", temp)
+        flush(stdout)
 
         # Anneal prior on sequence amplitude.
         prior = priors(model)
@@ -92,10 +91,10 @@ function annealed_gibbs!(
             model,
             spikes,
             assignments,
-            samples_per_anneal,
-            extra_split_merge_moves,
-            split_merge_window,
-            save_every,
+            config[:samples_per_anneal],
+            config[:split_merge_moves_during_anneal],
+            config[:save_every_during_anneal],
+            config;
             verbose=verbose
         )
 

@@ -53,6 +53,7 @@ function construct_model(config::Dict,
         config[:num_warp_values],
         config[:max_warp],
         config[:warp_variance],
+        config[:warp_type],
 
         # priors
         config[:seq_event_rate],
@@ -69,4 +70,32 @@ function construct_model(config::Dict,
     else
         return model
     end
+end
+
+"""
+Takes a model and sets the neuron response parameters for the first R_sacred sequences to those from
+another (previously trained) model.
+"""
+function sanctify_model(
+    model::Union{SeqModel,DistributedSeqModel},
+    sacred_neuron_responses::Matrix{Float64}, #  neuron responses from old model to be written into new one, shape = (3 x R_sacred) x N_neurones
+    config::Dict
+    )
+
+    if (:num_threads in keys(config)) && config[:num_threads] > 0
+        globals = model.primary_model.globals
+    else
+        globals = model.globals
+    end
+
+    number_sacred_sequences = size(sacred_neuron_responses)[2]÷3
+
+    print("Size of offsets = "*string(size(globals.neuron_response_offsets)))
+    print("Offset[1,1] before: "*string(globals.neuron_response_log_proportions[1,1])*"     Offset[1,-1] before: "*string(globals.neuron_response_log_proportions[1,Int(size(globals.neuron_response_log_proportions)[2])]))
+    globals.neuron_response_log_proportions[:,1:number_sacred_sequences] = sacred_neuron_responses[:,1:number_sacred_sequences]
+    globals.neuron_response_offsets[:,1:number_sacred_sequences] = sacred_neuron_responses[:,number_sacred_sequences+1:2*number_sacred_sequences]
+    globals.neuron_response_widths[:,1:number_sacred_sequences] = sacred_neuron_responses[:,2*number_sacred_sequences+1:3*number_sacred_sequences]
+    print("Offset[1,1] after: "*string(globals.neuron_response_log_proportions[1,1])*"     Offset[1,-1] after: "*string(globals.neuron_response_log_proportions[1,Int(size(globals.neuron_response_log_proportions)[2])]))
+
+    return model
 end
