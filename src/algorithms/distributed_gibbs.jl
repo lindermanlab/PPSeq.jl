@@ -17,24 +17,10 @@ function gibbs_sample!(
     end
 
     num_partitions = model.num_partitions
-    max_time = model.primary_model.max_time
+    max_time = model.max_time
 
     # Partition spikes.
-    split_points = Tuple(p * max_time / num_partitions for p in 0:num_partitions)
-    spk_partition = Tuple(Spike[] for m in model.submodels)
-    assgn_partition = [Int64[] for m in model.submodels]  # TODO -- Tuple?
-    partition_ids = [Int64[] for m in model.submodels]    # TODO -- Tuple?
-
-    for s = 1:length(spikes)
-        for p = 1:model.num_partitions
-            if split_points[p] <= spikes[s].timestamp <= split_points[p + 1]
-                push!(spk_partition[p], spikes[s])
-                push!(assgn_partition[p], initial_assignments[s])
-                push!(partition_ids[p], s)
-                break
-            end
-        end
-    end
+    spk_partition, assgn_partition, partition_ids = partition_spikes(model, spikes, initial_assignments)
 
     # Dense rank assignments within each partition.
     for p = 1:model.num_partitions
@@ -44,11 +30,7 @@ function gibbs_sample!(
 
     # Pass assignments to submodels
     for p in 1:model.num_partitions
-        recompute!(
-            model.submodels[p],
-            spk_partition[p],
-            assgn_partition[p],
-        )
+        recompute!(model.submodels[p], spk_partition[p], assgn_partition[p])
     end
 
     # Save spike assignments over samples.
@@ -133,6 +115,7 @@ function gibbs_sample!(
             push!(globals_hist, deepcopy(model.primary_model.globals))
 
             verbose && print(s, "-")
+            flush(stdout)
         end
     end
     verbose && println("Done")
@@ -144,6 +127,35 @@ function gibbs_sample!(
         latent_event_hist,
         globals_hist
     )
+end
+
+"""
+    partition_spikes(model::DistributedSeqModel, spikes, assignments)
+
+Partition spikes among the various submodels.
+"""
+function partition_spikes(model::DistributedSeqModel, spikes, assignments)
+    max_time = model.max_time
+    num_partitions = model.num_partitions
+
+    # Partition spikes.
+    split_points = Tuple(p * max_time / num_partitions for p in 0:num_partitions)
+    spk_partition = Tuple(Spike[] for m in model.submodels)
+    assgn_partition = [Int64[] for m in model.submodels]  # TODO -- Tuple?
+    partition_ids = [Int64[] for m in model.submodels]    # TODO -- Tuple?
+
+    for s = 1:length(spikes)
+        for p = 1:model.num_partitions
+            if split_points[p] <= spikes[s].timestamp <= split_points[p + 1]
+                push!(spk_partition[p], spikes[s])
+                push!(assgn_partition[p], assignments[s])
+                push!(partition_ids[p], s)
+                break
+            end
+        end
+    end
+
+    return spk_partition, assgn_partition, partition_ids
 end
 
 

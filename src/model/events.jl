@@ -122,10 +122,10 @@ end
 Recompute sufficient statistics for all sequence events.
 """
 function recompute!(
-        model::SeqModel,
-        spikes::Vector{Spike},
-        assignments::AbstractVector{Int64}
-    )
+    model::SeqModel,
+    spikes::Vector{Spike},
+    assignments::AbstractVector{Int64}
+)
     
     # Grab sequence event list.
     ev = model.sequence_events
@@ -167,6 +167,18 @@ function recompute!(
     for k in ev.indices
         set_posterior!(model, k)
     end
+end
+
+function recompute!(
+    model::DistributedSeqModel, 
+    spikes, 
+    assignments,
+)
+    # Partition spikes.
+    spk_partition, assgn_partition, partition_ids = partition_spikes(model, spikes, assignments)
+
+    # Pass assignments to submodels
+    recompute!.(model.submodels, spk_partition, assgn_partition)
 end
 
 
